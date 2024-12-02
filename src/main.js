@@ -1,68 +1,68 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'; // 导入 OrbitControls
-import { gsap } from 'gsap'; // 导入 GSAP 动画库
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { gsap } from 'gsap';
 
-// 创建场景
+// Create the scene
 const scene = new THREE.Scene();
 
-// 创建相机（视角稍微抬高）
+// Create the camera (slightly elevated perspective)
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(3, 5, 10); // 相机位置稍高并向后
-camera.lookAt(0, 0, 0); // 将相机对准场景中心
+camera.position.set(3, 5, 10); // Set the camera's position
+camera.lookAt(0, 0, 0); // Point the camera at the center of the scene
 
-// 创建渲染器
+// Create the renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0xb0e0e6, 1); // 设置背景颜色为粉蓝色
+renderer.setClearColor(0xb0e0e6, 1); // Set the background color to light blue
 document.body.appendChild(renderer.domElement);
 
-// 添加环境光
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // 柔和的环境光
+// Add ambient light
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft ambient light
 scene.add(ambientLight);
 
-// 添加柔和的平行白光
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 强度为 1 的平行光
-directionalLight.position.set(10, 20, 10); // 从右上方向（斜向）照射
-directionalLight.target.position.set(0, 0, 0); // 光线朝向场景中心
+// Add directional light (soft white light)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Intensity of 1
+directionalLight.position.set(10, 20, 10); // Set light position
+directionalLight.target.position.set(0, 0, 0); // Light points to the center of the scene
 scene.add(directionalLight);
 scene.add(directionalLight.target);
 
-// 调整阴影以实现柔和效果
-directionalLight.castShadow = true; // 启用阴影
-directionalLight.shadow.camera.near = 0.1; // 近处阴影范围
-directionalLight.shadow.camera.far = 50; // 远处阴影范围
-directionalLight.shadow.camera.left = -25; // 调整阴影区域
+// Configure shadows for the directional light
+directionalLight.castShadow = true; // Enable shadows
+directionalLight.shadow.camera.near = 0.1; // Near clipping plane for shadows
+directionalLight.shadow.camera.far = 50; // Far clipping plane for shadows
+directionalLight.shadow.camera.left = -25; // Shadow area bounds
 directionalLight.shadow.camera.right = 25;
 directionalLight.shadow.camera.top = 25;
 directionalLight.shadow.camera.bottom = -25;
-directionalLight.shadow.mapSize.width = 1024; // 提高阴影分辨率
+directionalLight.shadow.mapSize.width = 1024; // Shadow resolution
 directionalLight.shadow.mapSize.height = 1024;
 
-// 定义材质
+// Define materials
 const stainlessSteelMaterial = new THREE.MeshStandardMaterial({
-  color: 0xaaaaaa, // 灰色
-  metalness: 0.9, // 高金属感
-  roughness: 0.2, // 平滑的表面
+  color: 0xaaaaaa, // Gray
+  metalness: 0.9, // High metallic feel
+  roughness: 0.2, // Smooth surface
 });
 
 const sandblastedAluminumMaterial = new THREE.MeshStandardMaterial({
-  color: 0xd4d4d4, // 铝合金色
-  metalness: 0.8, // 中等金属感
-  roughness: 0.6, // 喷砂效果（粗糙表面）
+  color: 0xd4d4d4, // Aluminum color
+  metalness: 0.8, // Medium metallic feel
+  roughness: 0.6, // Sandblasted effect
 });
 
-// 加载 glb 模型
+// Load the GLB model
 const loader = new GLTFLoader();
-let rotationTween; // 保存旋转动画引用
+let rotationTween; // Store the rotation animation reference
 
 loader.load(
-  '/Resource/laptop_Desktop_Computer.glb', // 模型路径
+  '/Resource/laptop_Desktop_Computer.glb', // Path to the model
   function (gltf) {
     const model = gltf.scene;
     scene.add(model);
 
-    // 应用材质
+    // Apply materials
     applyMaterialToMeshes(model, [
       { names: ['Main_Crack', 'Upper_case_main_crack', 'PowerCase_maincrack'], material: stainlessSteelMaterial },
       {
@@ -87,98 +87,93 @@ loader.load(
       },
     ]);
 
-    // 计算几何中心并启动旋转台效果
-    const center = new THREE.Vector3();
-    const box = new THREE.Box3().setFromObject(model);
-    box.getCenter(center); // 获取模型的几何中心
-
-    console.log('Center of rotation:', center);
-
-    rotationTween = addRotatingEffect(model, center);
+    // Output parent-child relationship tree to the console
+    printSceneStructure(model);
   },
   function (xhr) {
-    console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`);
+    // Log progress (commented out as per request)
+    // console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`);
   },
   function (error) {
     console.error('An error occurred while loading the model:', error);
   }
 );
 
-// 添加 OrbitControls
+// Add OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // 开启阻尼效果（惯性）
-controls.dampingFactor = 0.05; // 阻尼系数
-controls.enablePan = false; // 禁用平移
-controls.enableZoom = true; // 启用缩放
+controls.enableDamping = true; // Enable damping (inertia)
+controls.dampingFactor = 0.05; // Damping factor
+controls.enablePan = false; // Disable panning
+controls.enableZoom = true; // Enable zooming
 
-// 添加计时器逻辑
+// Add a timer to control animations
 let timeoutId;
 function resetTimer() {
   clearTimeout(timeoutId);
-  if (rotationTween) rotationTween.pause(); // 暂停旋转
+  if (rotationTween) rotationTween.pause(); // Pause rotation
   timeoutId = setTimeout(() => {
-    if (rotationTween) rotationTween.resume(); // 恢复旋转
-  }, 20000); // 20 秒无输入后恢复旋转
+    if (rotationTween) rotationTween.resume(); // Resume rotation
+  }, 20000); // Resume rotation after 20 seconds of inactivity
 }
 
-// 检测用户输入
+// Detect user input
 ['mousemove', 'keydown', 'click', 'touchstart'].forEach((eventType) => {
   window.addEventListener(eventType, resetTimer);
 });
 
-// 渲染循环
+// Rendering loop
 function animate() {
   requestAnimationFrame(animate);
-  controls.update(); // 更新 OrbitControls
+  controls.update(); // Update OrbitControls
   renderer.render(scene, camera);
 }
 animate();
 
-// 响应窗口大小调整
+// Adjust viewport size on window resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// 函数：递归打印场景结构
+// Function: Print the parent-child relationship tree of the scene
 function printSceneStructure(object, depth = 0) {
-  const prefix = ' '.repeat(depth * 2); // 根据深度生成缩进
+  const prefix = ' '.repeat(depth * 2); // Indentation based on depth
   console.log(`${prefix}- ${object.type}: ${object.name || '(no name)'}`);
 
-  // 遍历子对象
+  // Recursively traverse and print child objects
   object.children.forEach((child) => {
     printSceneStructure(child, depth + 1);
   });
 }
 
-// 函数：为指定 Mesh 应用材质
+// Function: Apply materials to specific meshes
 function applyMaterialToMeshes(parent, rules) {
   parent.traverse((child) => {
     if (child.isMesh) {
       for (const rule of rules) {
         if (rule.names.includes(child.name)) {
           child.material = rule.material;
-          console.log(`Applied material to: ${child.name}`);
+          // Commented out logging as per request
+          // console.log(`Applied material to: ${child.name}`);
         }
       }
     }
   });
 }
 
-// 函数：为模型添加旋转台效果
+// Function: Add a rotation effect to the model
 function addRotatingEffect(object, center) {
-  // 将模型的旋转中心移动到几何中心
   const pivot = new THREE.Group();
   scene.add(pivot);
   pivot.add(object);
-  object.position.sub(center); // 将物体从几何中心移动到原点
+  object.position.sub(center); // Move the object to the origin
 
-  // 使用 GSAP 创建缓慢旋转效果
+  // Use GSAP to create a smooth rotation animation
   return gsap.to(pivot.rotation, {
     y: Math.PI * 2,
-    duration: 10, // 每 10 秒完成一次旋转
-    repeat: -1, // 无限循环
-    ease: 'linear', // 线性旋转
+    duration: 10, // Complete one rotation every 10 seconds
+    repeat: -1, // Infinite loop
+    ease: 'linear', // Linear rotation
   });
 }
