@@ -1,6 +1,6 @@
 #ignore the big GLB
-resource/laptop_Desktop_Computer.glb
+Resource/laptop_Desktop_Computer.glb
 
 # but keep other files
-!resource/
-!resource/*
+!Resource/
+!Resource/*
