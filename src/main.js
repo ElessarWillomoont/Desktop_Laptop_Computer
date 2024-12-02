@@ -109,7 +109,7 @@ function addPulsingBalls(target, r1, r2, ballCount, expansionTime) {
 
 // Load Model
 loader.load(
-  `${window.location.pathname.replace(/\/$/, '')}/Resource/laptop_Desktop_Computer.glb`,
+  `/Resource/laptop_Desktop_Computer.glb`,
   (gltf) => {
     const model = gltf.scene;
     scene.add(model);
