@@ -14,23 +14,30 @@ camera.lookAt(0, 0, 0); // 将相机对准场景中心
 // 创建渲染器
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0xb0e0e6, 1); // 设置背景颜色为粉蓝色
 document.body.appendChild(renderer.domElement);
 
 // 添加环境光
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // 柔和的环境光
 scene.add(ambientLight);
 
-// 添加柔和的聚光灯（模拟瀑布白光效果）
-const spotlight = new THREE.SpotLight(0xffffff, 1);
-spotlight.position.set(0, 10, 5); // 从上方照亮场景
-spotlight.angle = Math.PI / 6; // 聚光灯角度
-spotlight.penumbra = 0.5; // 光线柔和效果
-spotlight.castShadow = true;
-scene.add(spotlight);
+// 添加柔和的平行白光
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // 强度为 1 的平行光
+directionalLight.position.set(10, 20, 10); // 从右上方向（斜向）照射
+directionalLight.target.position.set(0, 0, 0); // 光线朝向场景中心
+scene.add(directionalLight);
+scene.add(directionalLight.target);
 
-// 添加辅助光源可视化（可选）
-const lightHelper = new THREE.SpotLightHelper(spotlight);
-scene.add(lightHelper);
+// 调整阴影以实现柔和效果
+directionalLight.castShadow = true; // 启用阴影
+directionalLight.shadow.camera.near = 0.1; // 近处阴影范围
+directionalLight.shadow.camera.far = 50; // 远处阴影范围
+directionalLight.shadow.camera.left = -25; // 调整阴影区域
+directionalLight.shadow.camera.right = 25;
+directionalLight.shadow.camera.top = 25;
+directionalLight.shadow.camera.bottom = -25;
+directionalLight.shadow.mapSize.width = 1024; // 提高阴影分辨率
+directionalLight.shadow.mapSize.height = 1024;
 
 // 定义材质
 const stainlessSteelMaterial = new THREE.MeshStandardMaterial({
@@ -47,6 +54,8 @@ const sandblastedAluminumMaterial = new THREE.MeshStandardMaterial({
 
 // 加载 glb 模型
 const loader = new GLTFLoader();
+let rotationTween; // 保存旋转动画引用
+
 loader.load(
   '/Resource/laptop_Desktop_Computer.glb', // 模型路径
   function (gltf) {
@@ -85,7 +94,7 @@ loader.load(
 
     console.log('Center of rotation:', center);
 
-    addRotatingEffect(model, center);
+    rotationTween = addRotatingEffect(model, center);
   },
   function (xhr) {
     console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`);
@@ -101,6 +110,21 @@ controls.enableDamping = true; // 开启阻尼效果（惯性）
 controls.dampingFactor = 0.05; // 阻尼系数
 controls.enablePan = false; // 禁用平移
 controls.enableZoom = true; // 启用缩放
+
+// 添加计时器逻辑
+let timeoutId;
+function resetTimer() {
+  clearTimeout(timeoutId);
+  if (rotationTween) rotationTween.pause(); // 暂停旋转
+  timeoutId = setTimeout(() => {
+    if (rotationTween) rotationTween.resume(); // 恢复旋转
+  }, 20000); // 20 秒无输入后恢复旋转
+}
+
+// 检测用户输入
+['mousemove', 'keydown', 'click', 'touchstart'].forEach((eventType) => {
+  window.addEventListener(eventType, resetTimer);
+});
 
 // 渲染循环
 function animate() {
@@ -151,7 +175,7 @@ function addRotatingEffect(object, center) {
   object.position.sub(center); // 将物体从几何中心移动到原点
 
   // 使用 GSAP 创建缓慢旋转效果
-  gsap.to(pivot.rotation, {
+  return gsap.to(pivot.rotation, {
     y: Math.PI * 2,
     duration: 10, // 每 10 秒完成一次旋转
     repeat: -1, // 无限循环

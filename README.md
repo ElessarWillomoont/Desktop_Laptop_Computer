@@ -1,6 +1,26 @@
 # Desktop-Laptop Computer
 
-## Current Progress:
+## Project Progress
+
+### Current Features
+- Users can adjust the camera using either a mouse or touch input.
+- The scene rotates slowly by default when there is no user input.
+- User interaction (mouse or touch input) temporarily halts the automatic rotation.
+- If no user interaction is detected for a period of time, the rotation resumes automatically.
+
+#### Interaction Flow
+1. **Initial State**: The scene rotates slowly.
+2. **User Interaction**: 
+   - Any input stops the rotation.
+   - The user can freely adjust the camera view using mouse or touch gestures.
+3. **Timeout Behavior**:
+   - After a period of inactivity, the scene resumes its automatic rotation.
+
+#### Implementation Notes
+- Ensure the transition between user-controlled and automatic rotation is smooth.
+- Consider adding configurable parameters for:
+  - **Rotation Speed**: Adjust how quickly the scene rotates automatically.
+  - **Inactivity Timeout**: Set the time before the automatic rotation resumes.
 - The case model is nearly completed, and all mounting holes have been prepared.
 - Due to the high polygon count of online models (e.g., the CPU cooler with 1.3 million faces, and the entire scene reaching 6 million faces), a significant amount of time was spent fine-tuning Blender's Decimate parameters. Eventually, the polygon count was successfully reduced to 200,000 faces, making the scene suitable for mobile devices.
 
