@@ -132,7 +132,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 loader.load(
-  `${window.location.pathname.replace(/\/$/, '')}/Resource/laptop_Desktop_Computer.glb`,
+  `/Resource/laptop_Desktop_Computer.glb`,
   (gltf) => {
     const model = gltf.scene;
     scene.add(model);
