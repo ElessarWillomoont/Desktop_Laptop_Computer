@@ -6,10 +6,12 @@ import { gsap } from 'gsap';
 // Create the scene
 const scene = new THREE.Scene();
 
-// Create the camera (slightly elevated perspective)
+// Create the camera
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(3, 5, 10); // Set the camera's position
-camera.lookAt(0, 0, 0); // Point the camera at the center of the scene
+camera.position.set(3, 5, 10); // Set initial camera position
+const cameraPivot = new THREE.Group(); // A pivot to rotate the camera
+scene.add(cameraPivot);
+cameraPivot.add(camera); // Attach camera to the pivot
 
 // Create the renderer
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -21,22 +23,22 @@ document.body.appendChild(renderer.domElement);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.3); // Soft ambient light
 scene.add(ambientLight);
 
-// Add directional light (soft white light)
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1); // Intensity of 1
-directionalLight.position.set(10, 20, 10); // Set light position
-directionalLight.target.position.set(0, 0, 0); // Light points to the center of the scene
+// Add directional light
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(10, 20, 10);
+directionalLight.target.position.set(0, 0, 0);
 scene.add(directionalLight);
 scene.add(directionalLight.target);
 
-// Configure shadows for the directional light
-directionalLight.castShadow = true; // Enable shadows
-directionalLight.shadow.camera.near = 0.1; // Near clipping plane for shadows
-directionalLight.shadow.camera.far = 50; // Far clipping plane for shadows
-directionalLight.shadow.camera.left = -25; // Shadow area bounds
+// Configure directional light shadows
+directionalLight.castShadow = true;
+directionalLight.shadow.camera.near = 0.1;
+directionalLight.shadow.camera.far = 50;
+directionalLight.shadow.camera.left = -25;
 directionalLight.shadow.camera.right = 25;
 directionalLight.shadow.camera.top = 25;
 directionalLight.shadow.camera.bottom = -25;
-directionalLight.shadow.mapSize.width = 1024; // Shadow resolution
+directionalLight.shadow.mapSize.width = 1024;
 directionalLight.shadow.mapSize.height = 1024;
 
 // Define materials
@@ -54,7 +56,9 @@ const sandblastedAluminumMaterial = new THREE.MeshStandardMaterial({
 
 // Load the GLB model
 const loader = new GLTFLoader();
+let mainCrackCenter = new THREE.Vector3(); // To store MainCrack's center
 let rotationTween; // Store the rotation animation reference
+let timeoutId; // Timer for detecting user inactivity
 
 loader.load(
   '/Resource/laptop_Desktop_Computer.glb', // Path to the model
@@ -62,9 +66,12 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    // Apply materials
+    // Apply materials to specific meshes
     applyMaterialToMeshes(model, [
-      { names: ['Main_Crack', 'Upper_case_main_crack', 'PowerCase_maincrack'], material: stainlessSteelMaterial },
+      {
+        names: ['Main_Crack', 'Upper_case_main_crack', 'PowerCase_maincrack'],
+        material: stainlessSteelMaterial,
+      },
       {
         names: [
           'LowerCase_KeyBoardFace',
@@ -87,36 +94,67 @@ loader.load(
       },
     ]);
 
-    // Output parent-child relationship tree to the console
+    // Find MainCrack's center in XY plane
+    const mainCrack = findObjectByName(model, 'Main_Crack');
+    if (mainCrack) {
+      const box = new THREE.Box3().setFromObject(mainCrack);
+      box.getCenter(mainCrackCenter);
+
+      // Set Z to 0 for XY plane projection
+      mainCrackCenter.z = 0;
+
+      // Adjust cameraPivot's position to MainCrack's XY center
+      cameraPivot.position.copy(mainCrackCenter);
+
+      // Start the camera rotation animation
+      startCameraRotation();
+    } else {
+      console.error('Main_Crack not found in the model.');
+    }
+
+    // Print the scene's hierarchy
     printSceneStructure(model);
   },
   function (xhr) {
-    // Log progress (commented out as per request)
-    // console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`);
+    console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`);
   },
   function (error) {
     console.error('An error occurred while loading the model:', error);
   }
 );
 
-// Add OrbitControls
+// Add OrbitControls for user interaction
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // Enable damping (inertia)
-controls.dampingFactor = 0.05; // Damping factor
-controls.enablePan = false; // Disable panning
-controls.enableZoom = true; // Enable zooming
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enablePan = false;
+controls.enableZoom = true;
 
-// Add a timer to control animations
-let timeoutId;
-function resetTimer() {
-  clearTimeout(timeoutId);
-  if (rotationTween) rotationTween.pause(); // Pause rotation
-  timeoutId = setTimeout(() => {
-    if (rotationTween) rotationTween.resume(); // Resume rotation
-  }, 20000); // Resume rotation after 20 seconds of inactivity
+// Function to start camera rotation
+function startCameraRotation() {
+  rotationTween = gsap.to(cameraPivot.rotation, {
+    y: Math.PI * 2,
+    duration: 10, // One full rotation every 10 seconds
+    repeat: -1, // Infinite loop
+    ease: 'linear',
+  });
 }
 
-// Detect user input
+// Function to stop camera rotation
+function stopCameraRotation() {
+  if (rotationTween) rotationTween.pause();
+}
+
+// Reset inactivity timer
+function resetTimer() {
+  clearTimeout(timeoutId);
+  stopCameraRotation(); // Stop rotation on user interaction
+  timeoutId = setTimeout(() => {
+    startCameraRotation(); // Restart rotation after 20 seconds of inactivity
+  }, 20000); // 20 seconds inactivity timeout
+}
+
+// Detect user interaction
 ['mousemove', 'keydown', 'click', 'touchstart'].forEach((eventType) => {
   window.addEventListener(eventType, resetTimer);
 });
@@ -129,7 +167,7 @@ function animate() {
 }
 animate();
 
-// Adjust viewport size on window resize
+// Adjust the viewport size on window resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -147,6 +185,17 @@ function printSceneStructure(object, depth = 0) {
   });
 }
 
+// Function: Find an object by name in the scene
+function findObjectByName(parent, name) {
+  let result = null;
+  parent.traverse((child) => {
+    if (child.name === name) {
+      result = child;
+    }
+  });
+  return result;
+}
+
 // Function: Apply materials to specific meshes
 function applyMaterialToMeshes(parent, rules) {
   parent.traverse((child) => {
@@ -154,26 +203,9 @@ function applyMaterialToMeshes(parent, rules) {
       for (const rule of rules) {
         if (rule.names.includes(child.name)) {
           child.material = rule.material;
-          // Commented out logging as per request
-          // console.log(`Applied material to: ${child.name}`);
+          console.log(`Applied material to: ${child.name}`);
         }
       }
     }
-  });
-}
-
-// Function: Add a rotation effect to the model
-function addRotatingEffect(object, center) {
-  const pivot = new THREE.Group();
-  scene.add(pivot);
-  pivot.add(object);
-  object.position.sub(center); // Move the object to the origin
-
-  // Use GSAP to create a smooth rotation animation
-  return gsap.to(pivot.rotation, {
-    y: Math.PI * 2,
-    duration: 10, // Complete one rotation every 10 seconds
-    repeat: -1, // Infinite loop
-    ease: 'linear', // Linear rotation
   });
 }
