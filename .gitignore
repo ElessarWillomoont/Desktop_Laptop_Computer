@@ -1,0 +1,6 @@
+#ignore the big GLB
+Resource/laptop_Desktop_Computer.glb
+
+# but keep other files
+!Resource/
+!Resource/*
