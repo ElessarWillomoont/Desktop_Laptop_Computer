@@ -60,8 +60,12 @@ let mainCrackCenter = new THREE.Vector3(); // To store MainCrack's center
 let rotationTween; // Store the rotation animation reference
 let timeoutId; // Timer for detecting user inactivity
 
+// Dynamic path for GitHub Pages
+const basePath = window.location.pathname.replace(/\/$/, ''); // Ensure no trailing slash
+const modelPath = `${basePath}/Resource/laptop_Desktop_Computer.glb`;
+
 loader.load(
-  '/Resource/laptop_Desktop_Computer.glb', // Path to the model
+  modelPath, // Path to the model
   function (gltf) {
     const model = gltf.scene;
     scene.add(model);
