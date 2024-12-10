@@ -130,6 +130,7 @@ let mainCrackCenter = new THREE.Vector3();
 let pulsingBalls; // Store PulsingBalls instance
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let isCaseOpen = false; // Global state to track if the case is open
 
 loader.load(
   `/Resource/laptop_Desktop_Computer.glb`,
@@ -190,13 +191,16 @@ loader.load(
         const intersects = raycaster.intersectObject(upperCaseFrontMesh);
 
         if (intersects.length > 0) {
-          openCase(rotateAxis);
-
-          // Remove pulsing balls on click
-          if (pulsingBalls) {
-            pulsingBalls.remove();
-            pulsingBalls = null;
+          if (isCaseOpen) {
+            closeCase(rotateAxis);
+          } else {
+            openCase(rotateAxis);
+            if (pulsingBalls) {
+              pulsingBalls.remove();
+              pulsingBalls = null;
+            }
           }
+          isCaseOpen = !isCaseOpen; // Toggle state
         }
       });
     }
@@ -226,6 +230,11 @@ function startCameraRotation() {
 // Open Case
 function openCase(rotateAxis) {
   gsap.to(rotateAxis.rotation, { x: -Math.PI / 1.8, duration: 1, ease: 'power2.inOut' });
+}
+
+// Close Case
+function closeCase(rotateAxis) {
+  gsap.to(rotateAxis.rotation, { x: 0, duration: 1, ease: 'power2.inOut' });
 }
 
 // Inactivity Timer
