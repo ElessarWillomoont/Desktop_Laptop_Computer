@@ -3,7 +3,6 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap } from 'gsap';
-import { PulsingBalls } from './PulsingBalls.js';
 import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls } from './utils.js';
 import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
 import { openCase, closeCase } from './animations.js';
