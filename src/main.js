@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap } from 'gsap';
+import { PulsingBalls } from './PulsingBalls.js';
+import { findObjectByName, applyMaterialToMeshes } from './utils.js';
+import { openCase, closeCase } from './animations.js';
 
 // Scene and Camera Setup
 const scene = new THREE.Scene();
@@ -50,87 +53,14 @@ const sandblastedAluminumMaterial = new THREE.MeshStandardMaterial({
   roughness: 0.6,
 });
 
-// PulsingBalls Class
-class PulsingBalls {
-  constructor(scene, target, r1, r2, ballCount, expansionTime) {
-    this.scene = scene;
-    this.target = target;
-    this.r1 = r1;
-    this.r2 = r2;
-    this.ballCount = ballCount;
-    this.expansionTime = expansionTime;
-    this.group = new THREE.Group();
-    this.balls = [];
-    this.init();
-  }
-
-  init() {
-    const ballMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
-    const ballGeometry = new THREE.SphereGeometry(1, 32, 32);
-
-    for (let i = 0; i < this.ballCount; i++) {
-      const ball = new THREE.Mesh(ballGeometry, ballMaterial.clone());
-      this.group.add(ball);
-      this.balls.push(ball);
-
-      const delay = (i / this.ballCount) * this.expansionTime;
-
-      gsap.fromTo(
-        ball.scale,
-        { x: this.r1, y: this.r1, z: this.r1 },
-        { x: this.r2, y: this.r2, z: this.r2, duration: this.expansionTime, repeat: -1, delay, ease: 'linear' }
-      );
-
-      gsap.fromTo(
-        ball.material,
-        { opacity: 0 },
-        { opacity: 1, duration: this.expansionTime / 2, yoyo: true, repeat: -1, delay, ease: 'power1.inOut' }
-      );
-    }
-
-    // Set the position of the group
-    const boundingBox = new THREE.Box3().setFromObject(this.target);
-    this.group.position.copy(boundingBox.getCenter(new THREE.Vector3()));
-
-    this.scene.add(this.group);
-  }
-
-  // Remove the pulsing balls from the scene
-  remove() {
-    this.scene.remove(this.group);
-    this.balls = [];
-  }
-}
-
-// Helper Functions
-function findObjectByName(parent, name) {
-  let result = null;
-  parent.traverse((child) => {
-    if (child.name === name) result = child;
-  });
-  return result;
-}
-
-function applyMaterialToMeshes(parent, rules) {
-  parent.traverse((child) => {
-    if (child.isMesh) {
-      for (const rule of rules) {
-        if (rule.names.includes(child.name)) {
-          child.material = rule.material;
-        }
-      }
-    }
-  });
-}
-
 // GLTF Loader
 const loader = new GLTFLoader();
 let upperCaseFrontMesh;
 let mainCrackCenter = new THREE.Vector3();
-let pulsingBalls; // Store PulsingBalls instance
+let pulsingBalls;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let isCaseOpen = false; // Global state to track if the case is open
+let isCaseOpen = false;
 
 loader.load(
   `/Resource/laptop_Desktop_Computer.glb`,
@@ -164,7 +94,6 @@ loader.load(
     if (rotateAxis && upperCaseFrontMesh) {
       const originalMaterial = upperCaseFrontMesh.material;
 
-      // Create PulsingBalls instance
       pulsingBalls = new PulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
 
       window.addEventListener('mousemove', (event) => {
@@ -200,7 +129,7 @@ loader.load(
               pulsingBalls = null;
             }
           }
-          isCaseOpen = !isCaseOpen; // Toggle state
+          isCaseOpen = !isCaseOpen;
         }
       });
     }
@@ -225,16 +154,6 @@ loader.load(
 let rotationTween;
 function startCameraRotation() {
   rotationTween = gsap.to(cameraPivot.rotation, { y: Math.PI * 2, duration: 10, repeat: -1, ease: 'linear' });
-}
-
-// Open Case
-function openCase(rotateAxis) {
-  gsap.to(rotateAxis.rotation, { x: -Math.PI / 1.8, duration: 1, ease: 'power2.inOut' });
-}
-
-// Close Case
-function closeCase(rotateAxis) {
-  gsap.to(rotateAxis.rotation, { x: 0, duration: 1, ease: 'power2.inOut' });
 }
 
 // Inactivity Timer
