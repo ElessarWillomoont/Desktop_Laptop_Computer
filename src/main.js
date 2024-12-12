@@ -1,9 +1,11 @@
+// Import necessary modules
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap } from 'gsap';
 import { PulsingBalls } from './PulsingBalls.js';
-import { findObjectByName, applyMaterialToMeshes } from './utils.js';
+import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls } from './utils.js';
+import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
 import { openCase, closeCase } from './animations.js';
 
 // Scene and Camera Setup
@@ -40,24 +42,12 @@ directionalLight.shadow.mapSize.height = 1024;
 scene.add(directionalLight);
 scene.add(directionalLight.target);
 
-// Materials
-const stainlessSteelMaterial = new THREE.MeshStandardMaterial({
-  color: 0xaaaaaa,
-  metalness: 0.9,
-  roughness: 0.2,
-});
-
-const sandblastedAluminumMaterial = new THREE.MeshStandardMaterial({
-  color: 0xd4d4d4,
-  metalness: 0.8,
-  roughness: 0.6,
-});
-
 // GLTF Loader
 const loader = new GLTFLoader();
 let upperCaseFrontMesh;
 let mainCrackCenter = new THREE.Vector3();
-let pulsingBalls;
+let openPulsingBalls; // For the open state
+let closedPulsingBalls; // For the closed state
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let isCaseOpen = false;
@@ -94,7 +84,8 @@ loader.load(
     if (rotateAxis && upperCaseFrontMesh) {
       const originalMaterial = upperCaseFrontMesh.material;
 
-      pulsingBalls = new PulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+      // Initialize PulsingBalls for the closed state
+      closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
 
       window.addEventListener('mousemove', (event) => {
         mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -122,14 +113,29 @@ loader.load(
         if (intersects.length > 0) {
           if (isCaseOpen) {
             closeCase(rotateAxis);
+
+            // Remove open PulsingBalls and create closed PulsingBalls after animation
+            openPulsingBalls = removePulsingBalls(openPulsingBalls);
+            gsap.to({}, {
+              duration: 1,
+              onComplete: () => {
+                closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+              },
+            });
           } else {
             openCase(rotateAxis);
-            if (pulsingBalls) {
-              pulsingBalls.remove();
-              pulsingBalls = null;
-            }
+
+            // Remove closed PulsingBalls and create open PulsingBalls after animation
+            closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
+            gsap.to({}, {
+              duration: 1,
+              onComplete: () => {
+                openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.2, 0.6, 5, 1.5);
+              },
+            });
           }
-          isCaseOpen = !isCaseOpen;
+
+          isCaseOpen = !isCaseOpen; // Toggle state
         }
       });
     }

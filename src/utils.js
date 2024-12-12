@@ -1,3 +1,5 @@
+import { PulsingBalls } from './PulsingBalls.js';
+
 export function findObjectByName(parent, name) {
     let result = null;
     parent.traverse((child) => {
@@ -16,5 +18,17 @@ export function findObjectByName(parent, name) {
         }
       }
     });
+  }
+  
+  export function addPulsingBalls(scene, target, radius1, radius2, ballCount, expansionTime) {
+    return new PulsingBalls(scene, target, radius1, radius2, ballCount, expansionTime);
+  }
+  
+  export function removePulsingBalls(pulsingBallsInstance) {
+    if (pulsingBallsInstance) {
+      pulsingBallsInstance.remove();
+      return null;
+    }
+    return pulsingBallsInstance;
   }
   
