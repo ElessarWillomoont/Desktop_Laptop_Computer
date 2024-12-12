@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap } from 'gsap';
-import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls } from './utils.js';
+import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls, printObjectTree } from './utils.js';
 import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
 import { openCase, closeCase } from './animations.js';
 
@@ -150,6 +150,10 @@ loader.load(
     } else {
       console.error('Main_Crack not found in the model.');
     }
+
+    // Print the object tree of the loaded scene
+    console.log('Object tree of the scene:');
+    printObjectTree(scene);
   },
   (xhr) => console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`),
   (error) => console.error('Error loading model:', error)
@@ -159,6 +163,23 @@ loader.load(
 let rotationTween;
 function startCameraRotation() {
   rotationTween = gsap.to(cameraPivot.rotation, { y: Math.PI * 2, duration: 10, repeat: -1, ease: 'linear' });
+}
+
+// Function to move a mesh in a specific direction by a given distance over a set time
+function moveMesh(direction, distance, mesh, time) {
+  const targetPosition = {
+    x: mesh.position.x + direction.x * distance,
+    y: mesh.position.y + direction.y * distance,
+    z: mesh.position.z + direction.z * distance,
+  };
+
+  gsap.to(mesh.position, {
+    x: targetPosition.x,
+    y: targetPosition.y,
+    z: targetPosition.z,
+    duration: time,
+    ease: 'power2.inOut',
+  });
 }
 
 // Inactivity Timer

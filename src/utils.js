@@ -32,3 +32,7 @@ export function findObjectByName(parent, name) {
     return pulsingBallsInstance;
   }
   
+ export function printObjectTree(object, depth = 0) {
+    console.log(`${' '.repeat(depth * 2)}${object.name || object.type}`);
+    object.children.forEach((child) => printObjectTree(child, depth + 1));
+  }
