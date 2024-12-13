@@ -1,6 +1,6 @@
-// Import necessary modules]
-import { gsap } from 'gsap';
+// Import necessary modules
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { findObjectByName, applyMaterialToMeshes, printObjectTree } from './utils.js';
@@ -36,17 +36,47 @@ directionalLight.castShadow = true;
 scene.add(directionalLight);
 scene.add(directionalLight.target);
 
-// GLTF Loader
+// Global state variables
+const upperCaseOpened = { value: false }; // State for upper case interaction
+const keyboardFaceOpened = { value: false }; // State for keyboard movement interaction
+const buttonFaceOpened = { value: false };
+const FrontCoverOpened = { value: false };
+const BehindCoverOpened = { value: false };
+const PowercaseOpened = { value: false };
+const PSUOpened = { value: false };
+
 const loader = new GLTFLoader();
 let upperCaseFrontMesh;
 let keyboardFaceMesh;
+let LowerCase_buttonMesh;
+let FrontCoverMesh
+let BehindCoverMesh
 let rotateAxis;
-let isCaseOpen = false;
-let isKeyboardUp = false;
+let PowercaseUpperMesh
+let PSUMesh
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Load the model and set up interactions
+// Model loading status
+let modelLoaded = false;
+
+// Interaction setup function
+function initializeInteractions() {
+  if (modelLoaded) {
+    setupRotationInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, upperCaseOpened);
+    setupMovementInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, { x: 0, y: 50, z: 0 }, keyboardFaceOpened);
+    setupMovementInteraction(scene, camera, raycaster, mouse, LowerCase_buttonMesh, { x: 0, y: -50, z: 0 }, buttonFaceOpened);
+    //LowerCase_behind
+    setupMovementInteraction(scene, camera, raycaster, mouse, FrontCoverMesh, { x: 0, y: 0, z: 50 }, FrontCoverOpened);
+    //LowerCase_front
+    setupMovementInteraction(scene, camera, raycaster, mouse, BehindCoverMesh, { x: 0, y: 0, z: -50 }, BehindCoverOpened);
+    // //PowerCase_upper
+    setupMovementInteraction(scene, camera, raycaster, mouse, PowercaseUpperMesh, { x: 0, y: 50, z: 0 }, PowercaseOpened);
+    // //ATX_Power_Supply_v1
+    setupMovementInteraction(scene, camera, raycaster, mouse, PSUMesh, { x: 0, y: 25, z: 0 }, PSUOpened);
+  }
+}
+
 loader.load(
   `/Resource/laptop_Desktop_Computer.glb`,
   (gltf) => {
@@ -75,17 +105,21 @@ loader.load(
 
     upperCaseFrontMesh = findObjectByName(model, 'Upper_case_front_or_upper');
     keyboardFaceMesh = findObjectByName(model, 'KeyboardFace');
+    LowerCase_buttonMesh = findObjectByName(model, 'LowerCase_button');
+    FrontCoverMesh = findObjectByName(model, 'LowerCase_front');
+    BehindCoverMesh = findObjectByName(model, 'LowerCase_behind');
+    PowercaseUpperMesh = findObjectByName(model, 'PowerCase_upper');
+    PSUMesh = findObjectByName(model, 'ATX_Power_Supply_v1');
     rotateAxis = findObjectByName(model, 'RotateAxis');
 
     if (!rotateAxis) {
       console.error('RotateAxis not found in the model.');
     }
 
-    // Setup interactions
-    setupRotationInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, isCaseOpen);
-    setupMovementInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, { x: 0, y: 50, z: 0 }, isKeyboardUp);
+    // Mark model as loaded and initialize interactions
+    modelLoaded = true;
+    initializeInteractions();
 
-    document.dispatchEvent(new Event('modelLoaded'));
     printObjectTree(scene);
   },
   (xhr) => console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`),

@@ -14,7 +14,7 @@ export function unlockAnimation() {
 }
 
 // Function to handle rotation-based animations
-export function setupRotationInteraction(scene, camera, raycaster, mouse, model, rotateAxis, isOpen) {
+export function setupRotationInteraction(scene, camera, raycaster, mouse, model, rotateAxis, upperCaseOpened) {
   if (!rotateAxis) {
     console.error('RotateAxis not found.');
     return;
@@ -45,7 +45,7 @@ export function setupRotationInteraction(scene, camera, raycaster, mouse, model,
     const intersects = raycaster.intersectObject(model);
 
     if (intersects.length > 0) {
-      if (isOpen) {
+      if (upperCaseOpened.value) {
         gsap.to(rotateAxis.rotation, {
           x: 0,
           duration: 1,
@@ -68,7 +68,7 @@ export function setupRotationInteraction(scene, camera, raycaster, mouse, model,
           },
         });
       }
-      isOpen = !isOpen;
+      upperCaseOpened.value = !upperCaseOpened.value;
     } else {
       unlockAnimation();
     }
@@ -76,10 +76,36 @@ export function setupRotationInteraction(scene, camera, raycaster, mouse, model,
 }
 
 // Function to handle linear movement animations
-export function setupMovementInteraction(scene, camera, raycaster, mouse, model, direction, isUp) {
-  let pulsingBall = addPulsingBalls(scene, model);
+export function setupMovementInteraction(scene, camera, raycaster, mouse, model, direction, keyboardFaceOpened) {
+  let pulsingBall = addPulsingBalls(scene, model); // 初始添加小球
 
-  window.addEventListener('click', (event) => {
+  function handleMovement() {
+    const moveDirection = keyboardFaceOpened.value
+      ? { x: -direction.x, y: -direction.y, z: -direction.z }
+      : direction;
+
+    gsap.to(model.position, {
+      x: model.position.x + moveDirection.x,
+      y: model.position.y + moveDirection.y,
+      z: model.position.z + moveDirection.z,
+      duration: 1,
+      ease: 'power2.inOut',
+      onStart: () => {
+        // 开始动画时移除小球
+        pulsingBall = removePulsingBalls(pulsingBall);
+      },
+      onComplete: () => {
+        // 动画完成后重新添加小球
+        pulsingBall = addPulsingBalls(scene, model);
+        unlockAnimation();
+      },
+    });
+
+    // 切换状态
+    keyboardFaceOpened.value = !keyboardFaceOpened.value;
+  }
+
+  const onClick = (event) => {
     if (isAnimating) return;
     lockAnimation();
 
@@ -87,27 +113,15 @@ export function setupMovementInteraction(scene, camera, raycaster, mouse, model,
     const intersects = raycaster.intersectObject(model);
 
     if (intersects.length > 0) {
-      removePulsingBalls(pulsingBall);
-
-      const moveDirection = isUp
-        ? { x: -direction.x, y: -direction.y, z: -direction.z }
-        : direction;
-
-      gsap.to(model.position, {
-        x: model.position.x + moveDirection.x,
-        y: model.position.y + moveDirection.y,
-        z: model.position.z + moveDirection.z,
-        duration: 1,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          pulsingBall = addPulsingBalls(scene, model);
-          unlockAnimation();
-        },
-      });
-
-      isUp = !isUp;
+      handleMovement();
     } else {
       unlockAnimation();
     }
-  });
+  };
+
+  // 确保不会重复绑定事件
+  window.removeEventListener('click', onClick);
+  window.addEventListener('click', onClick);
 }
+
+
