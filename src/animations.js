@@ -235,7 +235,7 @@ export function addHoverTooltip(scene, camera, raycaster, mouse, mesh, text) {
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(mesh);
 
-    if (intersects.length > 0) {
+    if (intersects.length > 0 && tooltip.style.display === 'none') {
       countdownCanvas.style.left = `${event.clientX - 25}px`;
       countdownCanvas.style.top = `${event.clientY - 25}px`;
 
@@ -265,12 +265,11 @@ export function addHoverTooltip(scene, camera, raycaster, mouse, mesh, text) {
         }, 16);
       }
     } else {
-      if (hoverTimer) {
+      if (hoverTimer && tooltip.style.display === 'none') {
         clearInterval(hoverTimer);
         ctx.clearRect(0, 0, 50, 50);
         isCounting = false;
       }
-      tooltip.style.display = 'none';
     }
   });
 }
