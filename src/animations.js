@@ -15,7 +15,17 @@ import { gsap } from 'gsap';
 //     setPulsingBall(scene, target);
 //   }});
 // }
+export let isAnimating = false;
 
+// Function to lock animation
+export function lockAnimation() {
+  isAnimating = true;
+}
+
+// Function to unlock animation
+export function unlockAnimation() {
+  isAnimating = false;
+}
 
 export function openCase(rotateAxis, scene, target, setPulsingBall) {
   gsap.to(rotateAxis.rotation, {

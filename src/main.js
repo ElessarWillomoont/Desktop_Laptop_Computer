@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { gsap } from 'gsap';
 import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls, printObjectTree } from './utils.js';
 import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
-import { openCase, closeCase } from './animations.js';
+import { openCase, closeCase, isAnimating, lockAnimation, unlockAnimation } from './animations.js';
 
 // Scene and Camera Setup
 const scene = new THREE.Scene();
@@ -100,7 +100,7 @@ loader.load(
 
     // 通知交互逻辑模型已加载完成
     document.dispatchEvent(new Event('modelLoaded'));
-    printObjectTree(scene)
+    printObjectTree(scene);
   },
   (xhr) => console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`),
   (error) => console.error('Error loading model:', error)
@@ -137,7 +137,7 @@ function setupUpperCaseInteraction() {
   }
 
   const originalMaterial = upperCaseFrontMesh.material;
-  let closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+  let closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
   let openPulsingBalls;
 
   window.addEventListener('mousemove', (event) => {
@@ -157,6 +157,9 @@ function setupUpperCaseInteraction() {
   });
 
   window.addEventListener('click', () => {
+    if (isAnimating) return; // 如果动画正在进行，直接返回
+    lockAnimation(); // 锁定状态
+
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(upperCaseFrontMesh);
 
@@ -165,25 +168,32 @@ function setupUpperCaseInteraction() {
         closeCase(rotateAxis); // 使用全局 rotateAxis
         openPulsingBalls = removePulsingBalls(openPulsingBalls);
         gsap.delayedCall(1, () => {
-          closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+          closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
+          unlockAnimation(); // 动画完成后解锁
         });
       } else {
         openCase(rotateAxis); // 使用全局 rotateAxis
         closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
         gsap.delayedCall(1, () => {
-          openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.2, 0.6, 5, 1.5);
+          openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
+          unlockAnimation(); // 动画完成后解锁
         });
       }
 
       isCaseOpen = !isCaseOpen;
+    } else {
+      unlockAnimation(); // 如果没有交互到，解锁状态
     }
   });
 }
 
 function setupKeyboardInteraction() {
-  let keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh, 0.1, 0.5, 5, 1.5);
+  let keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
 
   window.addEventListener('click', (event) => {
+    if (isAnimating) return; // 如果动画正在进行，直接返回
+    lockAnimation(); // 锁定状态
+
     raycaster.setFromCamera(mouse, camera);
     const intersects = raycaster.intersectObject(keyboardFaceMesh);
 
@@ -191,8 +201,13 @@ function setupKeyboardInteraction() {
       removePulsingBalls(keyboardPulsingBall);
       const direction = isKeyboardUp ? { x: 0, y: -1, z: 0 } : { x: 0, y: 1, z: 0 };
       moveMesh(direction, 0.5, keyboardFaceMesh, 1);
-      keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh, 0.1, 0.5, 5, 1.5);
+      keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
+      gsap.delayedCall(1, () => {
+        unlockAnimation(); // 动画完成后解锁
+      });
       isKeyboardUp = !isKeyboardUp;
+    } else {
+      unlockAnimation(); // 如果没有交互到，解锁状态
     }
   });
 }
