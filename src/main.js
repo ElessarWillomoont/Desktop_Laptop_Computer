@@ -62,10 +62,10 @@ let ATXMesh;
 let EATXMesh;
 let FanMesh;
 let WatterMesh;
-let UpperMainMash
-let GCMash
-let ScreenMesh
-let KeyBoradMesh
+let UpperMainMash;
+let GCMash;
+let ScreenMesh;
+let KeyBoradMesh;
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
@@ -76,6 +76,24 @@ let modelLoaded = false;
 // Interaction setup function
 function initializeInteractions() {
   if (modelLoaded) {
+    const interactableObjects = [
+      upperCaseFrontMesh,
+      keyboardFaceMesh,
+      LowerCase_buttonMesh,
+      FrontCoverMesh,
+      BehindCoverMesh,
+      PowercaseUpperMesh,
+      PSUMesh,
+      ATXMesh,
+      EATXMesh,
+      FanMesh,
+      WatterMesh,
+      UpperMainMash,
+      GCMash,
+      ScreenMesh,
+      KeyBoradMesh,
+    ].filter(Boolean);
+
     setupRotationInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, upperCaseOpened);
     setupMovementInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, { x: 0, y: 50, z: 0 }, keyboardFaceOpened);
     setupMovementInteraction(scene, camera, raycaster, mouse, LowerCase_buttonMesh, { x: 0, y: -50, z: 0 }, buttonFaceOpened);
@@ -84,12 +102,12 @@ function initializeInteractions() {
     setupMovementInteraction(scene, camera, raycaster, mouse, PowercaseUpperMesh, { x: 0, y: 50, z: 0 }, PowercaseOpened);
     setupMovementInteraction(scene, camera, raycaster, mouse, PSUMesh, { x: 0, y: 25, z: 0 }, PSUOpened);
     addHoverTooltip(scene, camera, raycaster, mouse, UpperMainMash, "3mm thick aluminum alloy with numerous heat dissipation holes, maximizing heat dissipation and lightweight design while maintaining strength.\n");
-    addHoverTooltip(scene, camera, raycaster, mouse, GCMash, "External GPU connected via high-speed PCI and high-power extension cables (designed with up to four 8-pin interfaces). The design prioritizes maximum GPU compatibility with negligible latency and performance loss (cables not shown in the diagram). \nNo restrictions on length or width, no need to consider cooling issues, compatible with even the highest-end gaming and professional GPUs (model shown: EVGA 4080).\n")
-    addHoverTooltip(scene, camera, raycaster, mouse, ATXMesh, "The internal space is sufficient to accommodate high-end EATX motherboards (currently shown with an ASUS ROG ATX motherboard, which can be switched to EATX by clicking).\n")
-    addHoverTooltip(scene, camera, raycaster, mouse, FanMesh, "The chassis supports downdraft coolers up to 7.5cm in height and also accommodates liquid cooling (clicking the cooler can switch to a water block). Radiators need to be external or custom-built for internal installation when using an ATX motherboard. Internal radiators are not supported with EATX motherboards due to space limitations. Future plans include designing quick-release fittings for liquid cooling tubes on the back panel for easier connection and disconnection.\n")
-    addHoverTooltip(scene, camera, raycaster, mouse, KeyBoradMesh, "Supports a full-size laptop keyboard paired with a large touchpad (module requires specific designation or customization).\n")
-    addHoverTooltip(scene, camera, raycaster, mouse, ScreenMesh, "Supports an 18-inch laptop screen with dedicated space reserved for an essential internet webcam.\n")
-    addHoverTooltip(scene, camera, raycaster, mouse, PSUMesh, "External power box supports ATX-L specification PSU length, ensuring compatibility with the highest wattage PSUs to support top-tier GPUs and graphics cards. Future plans include specially designed circuit boards and connectors to enable connection to the main chassis via a single cable, reducing wiring complexity.\n")
+    addHoverTooltip(scene, camera, raycaster, mouse, GCMash, "External GPU connected via high-speed PCI and high-power extension cables (designed with up to four 8-pin interfaces). The design prioritizes maximum GPU compatibility with negligible latency and performance loss (cables not shown in the diagram). \nNo restrictions on length or width, no need to consider cooling issues, compatible with even the highest-end gaming and professional GPUs (model shown: EVGA 4080).\n");
+    addHoverTooltip(scene, camera, raycaster, mouse, ATXMesh, "The internal space is sufficient to accommodate high-end EATX motherboards (currently shown with an ASUS ROG ATX motherboard, which can be switched to EATX by clicking).\n");
+    addHoverTooltip(scene, camera, raycaster, mouse, FanMesh, "The chassis supports downdraft coolers up to 7.5cm in height and also accommodates liquid cooling (clicking the cooler can switch to a water block). Radiators need to be external or custom-built for internal installation when using an ATX motherboard. Internal radiators are not supported with EATX motherboards due to space limitations. Future plans include designing quick-release fittings for liquid cooling tubes on the back panel for easier connection and disconnection.\n");
+    addHoverTooltip(scene, camera, raycaster, mouse, KeyBoradMesh, "Supports a full-size laptop keyboard paired with a large touchpad (module requires specific designation or customization).\n");
+    addHoverTooltip(scene, camera, raycaster, mouse, ScreenMesh, "Supports an 18-inch laptop screen with dedicated space reserved for an essential internet webcam.\n");
+    addHoverTooltip(scene, camera, raycaster, mouse, PSUMesh, "External power box supports ATX-L specification PSU length, ensuring compatibility with the highest wattage PSUs to support top-tier GPUs and graphics cards. Future plans include specially designed circuit boards and connectors to enable connection to the main chassis via a single cable, reducing wiring complexity.\n");
   }
 }
 

@@ -1,33 +1,45 @@
 # Desktop-Laptop Computer
 
-## Project Progress
+# Raycaster Interaction Project
 
-### Current Features
-- Users can adjust the camera using either a mouse or touch input.
-- The scene rotates slowly by default when there is no user input.
-- User interaction (mouse or touch input) temporarily halts the automatic rotation.
-- If no user interaction is detected for a period of time, the rotation resumes automatically.
+## Overview
+This project implements interactive 3D objects using Three.js and raycasting techniques. Users can interact with objects through rotation, movement, toggling visibility, and hovering tooltips.
 
-#### Interaction Flow
-1. **Initial State**: The scene rotates slowly.
-2. **User Interaction**: 
-   - Any input stops the rotation.
-   - The user can freely adjust the camera view using mouse or touch gestures.
-3. **Timeout Behavior**:
-   - After a period of inactivity, the scene resumes its automatic rotation.
+## Interaction Logic
 
-#### Implementation Notes
-- Ensure the transition between user-controlled and automatic rotation is smooth.
-- Consider adding configurable parameters for:
-  - **Rotation Speed**: Adjust how quickly the scene rotates automatically.
-  - **Inactivity Timeout**: Set the time before the automatic rotation resumes.
-- The case model is nearly completed, and all mounting holes have been prepared.
-- Due to the high polygon count of online models (e.g., the CPU cooler with 1.3 million faces, and the entire scene reaching 6 million faces), a significant amount of time was spent fine-tuning Blender's Decimate parameters. Eventually, the polygon count was successfully reduced to 200,000 faces, making the scene suitable for mobile devices.
+### Types of Interactive Objects
+1. **Movement Objects**: Objects with motion functionality are marked by a blinking white dot. Interaction is enabled by clicking on the object.
 
-## TODO:
-- **Electrical design** is not yet completed.
-- **Software development** is still in progress.
-- **Rendering of the model** has not been done yet.
+2. **Transformation Objects**: Objects with transformation functionality highlight in yellow when hovered. Clicking on these objects triggers a transformation.
+
+3. **Explanation Objects**: Objects with explanatory functionality display a circular progress indicator around the cursor when hovered. After the circle fills, a text box appears, which can be closed by clicking the `x` in the top-right corner.
+
+### Known Issue
+- The raycaster occasionally interacts with all objects aligned along a straight line, causing interactions with multiple objects simultaneously. The cause of this issue is currently under investigation.
+
+## Features
+- **Rotation Interaction**: Selected objects can rotate around a defined axis when clicked.
+- **Movement Interaction**: Objects can move linearly in a defined direction on interaction.
+- **Mesh Toggle Interaction**: Enables toggling between different mesh states of the same object.
+- **Hover Tooltips**: Displays explanatory tooltips for specific objects when hovered.
+
+## Dependencies
+- [Three.js](https://threejs.org/) for 3D rendering.
+- [GSAP](https://greensock.com/gsap/) for animations.
+
+## Setup Instructions
+1. Clone the repository.
+2. Install dependencies using `npm install`.
+3. Start the development server using `npm start`.
+4. Access the application in your browser at `http://localhost:8080`.
+
+## File Structure
+- `index.html`: Entry point for the application.
+- `src/`: Contains the main scripts for rendering and interaction.
+  - `main.js`: Initializes the scene, renderer, and camera.
+  - `animations.js`: Handles object animations and interactions.
+  - `utils.js`: Utility functions for object traversal and material application.
+  - `materials.js`: Material definitions for different object types.
 
 ## Referenced Models:
 
