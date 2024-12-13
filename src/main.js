@@ -1,11 +1,14 @@
 // Import necessary modules
 import * as THREE from 'three';
+import { gsap } from 'gsap';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { gsap } from 'gsap';
-import { findObjectByName, applyMaterialToMeshes, addPulsingBalls, removePulsingBalls, printObjectTree } from './utils.js';
+import { findObjectByName, applyMaterialToMeshes, printObjectTree } from './utils.js';
 import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
-import { openCase, closeCase, isAnimating, lockAnimation, unlockAnimation } from './animations.js';
+import {
+  setupUpperCaseInteraction,
+  setupKeyboardInteraction,
+} from './animations.js';
 
 // Scene and Camera Setup
 const scene = new THREE.Scene();
@@ -49,9 +52,10 @@ let mainCrackCenter = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let isCaseOpen = false;
-let isKeyboardUp = false; // Tracks keyboard movement state
-let rotateAxis; // 新增全局变量以存储 RotateAxis 对象
+let isKeyboardUp = false;
+let rotateAxis;
 
+// Load the model and set up interactions
 loader.load(
   `/Resource/laptop_Desktop_Computer.glb`,
   (gltf) => {
@@ -80,7 +84,7 @@ loader.load(
 
     upperCaseFrontMesh = findObjectByName(model, 'Upper_case_front_or_upper');
     keyboardFaceMesh = findObjectByName(model, 'KeyboardFace');
-    rotateAxis = findObjectByName(model, 'RotateAxis'); // 获取 RotateAxis 对象
+    rotateAxis = findObjectByName(model, 'RotateAxis');
 
     if (!rotateAxis) {
       console.error('RotateAxis not found in the model.');
@@ -98,7 +102,6 @@ loader.load(
       console.error('Main_Crack not found in the model.');
     }
 
-    // 通知交互逻辑模型已加载完成
     document.dispatchEvent(new Event('modelLoaded'));
     printObjectTree(scene);
   },
@@ -111,112 +114,6 @@ let rotationTween;
 function startCameraRotation() {
   rotationTween = gsap.to(cameraPivot.rotation, { y: Math.PI * 2, duration: 10, repeat: -1, ease: 'linear' });
 }
-
-// Function to move a mesh in a specific direction by a given distance over a set time
-function moveMesh(direction, distance, mesh, time) {
-  const targetPosition = {
-    x: mesh.position.x + direction.x * distance,
-    y: mesh.position.y + direction.y * distance,
-    z: mesh.position.z + direction.z * distance,
-  };
-
-  gsap.to(mesh.position, {
-    x: targetPosition.x,
-    y: targetPosition.y,
-    z: targetPosition.z,
-    duration: time,
-    ease: 'power2.inOut',
-  });
-}
-
-// Interaction Setup
-function setupUpperCaseInteraction() {
-  if (!rotateAxis) {
-    console.error('RotateAxis not found.');
-    return;
-  }
-
-  const originalMaterial = upperCaseFrontMesh.material;
-  let closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
-  let openPulsingBalls;
-
-  window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
-
-    if (intersects.length > 0) {
-      upperCaseFrontMesh.material.color.set(0xffffff);
-      document.body.style.cursor = 'pointer';
-    } else {
-      upperCaseFrontMesh.material.color.copy(originalMaterial.color);
-      document.body.style.cursor = 'default';
-    }
-  });
-
-  window.addEventListener('click', () => {
-    if (isAnimating) return; // 如果动画正在进行，直接返回
-    lockAnimation(); // 锁定状态
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
-
-    if (intersects.length > 0) {
-      if (isCaseOpen) {
-        closeCase(rotateAxis); // 使用全局 rotateAxis
-        openPulsingBalls = removePulsingBalls(openPulsingBalls);
-        gsap.delayedCall(1, () => {
-          closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
-          unlockAnimation(); // 动画完成后解锁
-        });
-      } else {
-        openCase(rotateAxis); // 使用全局 rotateAxis
-        closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
-        gsap.delayedCall(1, () => {
-          openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
-          unlockAnimation(); // 动画完成后解锁
-        });
-      }
-
-      isCaseOpen = !isCaseOpen;
-    } else {
-      unlockAnimation(); // 如果没有交互到，解锁状态
-    }
-  });
-}
-
-function setupKeyboardInteraction() {
-  let keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
-
-  window.addEventListener('click', (event) => {
-    if (isAnimating) return; // 如果动画正在进行，直接返回
-    lockAnimation(); // 锁定状态
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(keyboardFaceMesh);
-
-    if (intersects.length > 0) {
-      removePulsingBalls(keyboardPulsingBall);
-      const direction = isKeyboardUp ? { x: 0, y: -1, z: 0 } : { x: 0, y: 1, z: 0 };
-      moveMesh(direction, 0.5, keyboardFaceMesh, 1);
-      keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
-      gsap.delayedCall(1, () => {
-        unlockAnimation(); // 动画完成后解锁
-      });
-      isKeyboardUp = !isKeyboardUp;
-    } else {
-      unlockAnimation(); // 如果没有交互到，解锁状态
-    }
-  });
-}
-
-// Listen for model loaded event
-document.addEventListener('modelLoaded', () => {
-  if (upperCaseFrontMesh) setupUpperCaseInteraction();
-  if (keyboardFaceMesh) setupKeyboardInteraction();
-});
 
 // Inactivity Timer
 let timeoutId;
@@ -236,6 +133,12 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enableZoom = true;
+
+// Listen for model loaded event and set up interactions
+document.addEventListener('modelLoaded', () => {
+  if (upperCaseFrontMesh) setupUpperCaseInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, isCaseOpen);
+  if (keyboardFaceMesh) setupKeyboardInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, isKeyboardUp);
+});
 
 // Animation Loop
 function animate() {
