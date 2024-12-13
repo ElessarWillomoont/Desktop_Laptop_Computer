@@ -1,7 +1,5 @@
 # Desktop-Laptop Computer
 
-# Raycaster Interaction Project
-
 ## Overview
 This project implements interactive 3D objects using Three.js and raycasting techniques. Users can interact with objects through rotation, movement, toggling visibility, and hovering tooltips.
 
