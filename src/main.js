@@ -44,12 +44,13 @@ scene.add(directionalLight.target);
 // GLTF Loader
 const loader = new GLTFLoader();
 let upperCaseFrontMesh;
+let keyboardFaceMesh;
 let mainCrackCenter = new THREE.Vector3();
-let openPulsingBalls; // For the open state
-let closedPulsingBalls; // For the closed state
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 let isCaseOpen = false;
+let isKeyboardUp = false; // Tracks keyboard movement state
+let rotateAxis; // 新增全局变量以存储 RotateAxis 对象
 
 loader.load(
   `/Resource/laptop_Desktop_Computer.glb`,
@@ -77,66 +78,12 @@ loader.load(
       },
     ]);
 
-    const rotateAxis = findObjectByName(model, 'RotateAxis');
     upperCaseFrontMesh = findObjectByName(model, 'Upper_case_front_or_upper');
+    keyboardFaceMesh = findObjectByName(model, 'KeyboardFace');
+    rotateAxis = findObjectByName(model, 'RotateAxis'); // 获取 RotateAxis 对象
 
-    if (rotateAxis && upperCaseFrontMesh) {
-      const originalMaterial = upperCaseFrontMesh.material;
-
-      // Initialize PulsingBalls for the closed state
-      closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
-
-      window.addEventListener('mousemove', (event) => {
-        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObject(upperCaseFrontMesh);
-
-        if (intersects.length > 0) {
-          upperCaseFrontMesh.material = new THREE.MeshStandardMaterial({
-            ...originalMaterial,
-            color: 0xffffff,
-          });
-          document.body.style.cursor = 'pointer';
-        } else {
-          upperCaseFrontMesh.material = originalMaterial;
-          document.body.style.cursor = 'default';
-        }
-      });
-
-      window.addEventListener('click', () => {
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObject(upperCaseFrontMesh);
-
-        if (intersects.length > 0) {
-          if (isCaseOpen) {
-            closeCase(rotateAxis);
-
-            // Remove open PulsingBalls and create closed PulsingBalls after animation
-            openPulsingBalls = removePulsingBalls(openPulsingBalls);
-            gsap.to({}, {
-              duration: 1,
-              onComplete: () => {
-                closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
-              },
-            });
-          } else {
-            openCase(rotateAxis);
-
-            // Remove closed PulsingBalls and create open PulsingBalls after animation
-            closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
-            gsap.to({}, {
-              duration: 1,
-              onComplete: () => {
-                openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.2, 0.6, 5, 1.5);
-              },
-            });
-          }
-
-          isCaseOpen = !isCaseOpen; // Toggle state
-        }
-      });
+    if (!rotateAxis) {
+      console.error('RotateAxis not found in the model.');
     }
 
     const mainCrack = findObjectByName(model, 'Main_Crack');
@@ -151,9 +98,9 @@ loader.load(
       console.error('Main_Crack not found in the model.');
     }
 
-    // Print the object tree of the loaded scene
-    console.log('Object tree of the scene:');
-    printObjectTree(scene);
+    // 通知交互逻辑模型已加载完成
+    document.dispatchEvent(new Event('modelLoaded'));
+    printObjectTree(scene)
   },
   (xhr) => console.log(`Model ${(xhr.loaded / xhr.total) * 100}% loaded`),
   (error) => console.error('Error loading model:', error)
@@ -181,6 +128,80 @@ function moveMesh(direction, distance, mesh, time) {
     ease: 'power2.inOut',
   });
 }
+
+// Interaction Setup
+function setupUpperCaseInteraction() {
+  if (!rotateAxis) {
+    console.error('RotateAxis not found.');
+    return;
+  }
+
+  const originalMaterial = upperCaseFrontMesh.material;
+  let closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+  let openPulsingBalls;
+
+  window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
+
+    if (intersects.length > 0) {
+      upperCaseFrontMesh.material.color.set(0xffffff);
+      document.body.style.cursor = 'pointer';
+    } else {
+      upperCaseFrontMesh.material.color.copy(originalMaterial.color);
+      document.body.style.cursor = 'default';
+    }
+  });
+
+  window.addEventListener('click', () => {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
+
+    if (intersects.length > 0) {
+      if (isCaseOpen) {
+        closeCase(rotateAxis); // 使用全局 rotateAxis
+        openPulsingBalls = removePulsingBalls(openPulsingBalls);
+        gsap.delayedCall(1, () => {
+          closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.1, 0.5, 5, 1.5);
+        });
+      } else {
+        openCase(rotateAxis); // 使用全局 rotateAxis
+        closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
+        gsap.delayedCall(1, () => {
+          openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh, 0.2, 0.6, 5, 1.5);
+        });
+      }
+
+      isCaseOpen = !isCaseOpen;
+    }
+  });
+}
+
+function setupKeyboardInteraction() {
+  let keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh, 0.1, 0.5, 5, 1.5);
+
+  window.addEventListener('click', (event) => {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(keyboardFaceMesh);
+
+    if (intersects.length > 0) {
+      removePulsingBalls(keyboardPulsingBall);
+      const direction = isKeyboardUp ? { x: 0, y: -1, z: 0 } : { x: 0, y: 1, z: 0 };
+      moveMesh(direction, 0.5, keyboardFaceMesh, 1);
+      keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh, 0.1, 0.5, 5, 1.5);
+      isKeyboardUp = !isKeyboardUp;
+    }
+  });
+}
+
+// Listen for model loaded event
+document.addEventListener('modelLoaded', () => {
+  if (upperCaseFrontMesh) setupUpperCaseInteraction();
+  if (keyboardFaceMesh) setupKeyboardInteraction();
+});
 
 // Inactivity Timer
 let timeoutId;

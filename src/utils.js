@@ -20,9 +20,16 @@ export function findObjectByName(parent, name) {
     });
   }
   
-  export function addPulsingBalls(scene, target, radius1, radius2, ballCount, expansionTime) {
-    return new PulsingBalls(scene, target, radius1, radius2, ballCount, expansionTime);
-  }
+    export function addPulsingBalls(
+        scene,
+        target,
+        radius1 = 0.1,          // 默认半径1
+        radius2 = 0.5,          // 默认半径2
+        ballCount = 5,          // 默认球数量
+        expansionTime = 5     // 默认膨胀时间
+    ) {
+        return new PulsingBalls(scene, target, radius1, radius2, ballCount, expansionTime);
+    }
   
   export function removePulsingBalls(pulsingBallsInstance) {
     if (pulsingBallsInstance) {
