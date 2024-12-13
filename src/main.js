@@ -10,6 +10,7 @@ import {
   setupMovementInteraction,
 } from './animations.js';
 
+
 // Scene and Camera Setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -49,11 +50,16 @@ const loader = new GLTFLoader();
 let upperCaseFrontMesh;
 let keyboardFaceMesh;
 let LowerCase_buttonMesh;
-let FrontCoverMesh
-let BehindCoverMesh
+let FrontCoverMesh;
+let BehindCoverMesh;
 let rotateAxis;
-let PowercaseUpperMesh
-let PSUMesh
+let PowercaseUpperMesh;
+let PSUMesh;
+let ATXMesh;
+let EATXMesh;
+let FanMesh;
+let WatterMesh;
+
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -75,6 +81,93 @@ function initializeInteractions() {
     // //ATX_Power_Supply_v1
     setupMovementInteraction(scene, camera, raycaster, mouse, PSUMesh, { x: 0, y: 25, z: 0 }, PSUOpened);
   }
+}
+
+function setupMeshToggleInteraction(mesh1, mesh2) {
+  // 确保初始状态下只有一个 mesh 可见
+  mesh1.visible = true;
+  mesh2.visible = false;
+
+  // 定义默认材质和高亮材质
+  const defaultMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+  const hoverMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+  // 存储原始材质
+  const originalMaterials = new Map();
+  mesh1.traverse((child) => {
+    if (child.isMesh) originalMaterials.set(child, child.material);
+  });
+  mesh2.traverse((child) => {
+    if (child.isMesh) originalMaterials.set(child, child.material);
+  });
+
+  // 获取所有子节点（包括自身）作为交互对象
+  const mesh1Children = [];
+  const mesh2Children = [];
+  mesh1.traverse((child) => mesh1Children.push(child));
+  mesh2.traverse((child) => mesh2Children.push(child));
+
+  let highlightedObject = null; // 当前高亮的对象
+
+  console.log(`setupMeshToggleInteraction initialized for ${mesh1.name} and ${mesh2.name}`);
+
+  // 鼠标移动时检测高亮
+  window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
+
+    if (intersects.length > 0) {
+      const hoveredMesh = intersects[0].object;
+
+      if (highlightedObject !== hoveredMesh) {
+        // 取消上一个高亮
+        if (highlightedObject) {
+          highlightedObject.material = originalMaterials.get(highlightedObject);
+        }
+
+        // 设置当前高亮
+        highlightedObject = hoveredMesh;
+        highlightedObject.material = hoverMaterial;
+      }
+    } else {
+      // 没有悬停对象时，取消所有高亮
+      if (highlightedObject) {
+        highlightedObject.material = originalMaterials.get(highlightedObject);
+        highlightedObject = null;
+      }
+    }
+  });
+
+  // 鼠标点击时切换模型
+  window.addEventListener('click', (event) => {
+    console.log('Mouse click detected');
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
+
+    console.log('Intersected objects:', intersects);
+
+    if (intersects.length > 0) {
+      const clickedMesh = intersects[0].object;
+
+      console.log(`Clicked on: ${clickedMesh.name}`);
+
+      if (mesh1Children.includes(clickedMesh)) {
+        console.log(`Switching from ${mesh1.name} to ${mesh2.name}`);
+        mesh1.visible = false;
+        mesh2.visible = true;
+      } else if (mesh2Children.includes(clickedMesh)) {
+        console.log(`Switching from ${mesh2.name} to ${mesh1.name}`);
+        mesh1.visible = true;
+        mesh2.visible = false;
+      }
+    } else {
+      console.log('No intersected objects detected.');
+    }
+  });
 }
 
 loader.load(
@@ -111,6 +204,10 @@ loader.load(
     PowercaseUpperMesh = findObjectByName(model, 'PowerCase_upper');
     PSUMesh = findObjectByName(model, 'ATX_Power_Supply_v1');
     rotateAxis = findObjectByName(model, 'RotateAxis');
+    ATXMesh = findObjectByName(model, 'ATX_MB');
+    EATXMesh = findObjectByName(model, 'EATX_MB');
+    FanMesh = findObjectByName(model, 'CPU_FAN');
+    WatterMesh = findObjectByName(model, 'Water_cooler_inner');
 
     if (!rotateAxis) {
       console.error('RotateAxis not found in the model.');
@@ -119,6 +216,14 @@ loader.load(
     // Mark model as loaded and initialize interactions
     modelLoaded = true;
     initializeInteractions();
+
+    // Example usage of setupMeshToggleInteraction
+    if (ATXMesh && EATXMesh) {
+      setupMeshToggleInteraction(ATXMesh, EATXMesh);
+    }
+    if (FanMesh && WatterMesh) {
+      setupMeshToggleInteraction(FanMesh, WatterMesh);
+    }
 
     printObjectTree(scene);
   },
