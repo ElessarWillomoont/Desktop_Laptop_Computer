@@ -1,5 +1,8 @@
+// Updated animations.js
+
 import { gsap } from 'gsap';
 import { addPulsingBalls, removePulsingBalls } from './utils.js';
+import * as THREE from 'three';
 
 export let isAnimating = false;
 
@@ -77,7 +80,7 @@ export function setupRotationInteraction(scene, camera, raycaster, mouse, model,
 
 // Function to handle linear movement animations
 export function setupMovementInteraction(scene, camera, raycaster, mouse, model, direction, keyboardFaceOpened) {
-  let pulsingBall = addPulsingBalls(scene, model); // 初始添加小球
+  let pulsingBall = addPulsingBalls(scene, model); // Initial pulsing ball
 
   function handleMovement() {
     const moveDirection = keyboardFaceOpened.value
@@ -91,17 +94,14 @@ export function setupMovementInteraction(scene, camera, raycaster, mouse, model,
       duration: 1,
       ease: 'power2.inOut',
       onStart: () => {
-        // 开始动画时移除小球
         pulsingBall = removePulsingBalls(pulsingBall);
       },
       onComplete: () => {
-        // 动画完成后重新添加小球
         pulsingBall = addPulsingBalls(scene, model);
         unlockAnimation();
       },
     });
 
-    // 切换状态
     keyboardFaceOpened.value = !keyboardFaceOpened.value;
   }
 
@@ -119,9 +119,158 @@ export function setupMovementInteraction(scene, camera, raycaster, mouse, model,
     }
   };
 
-  // 确保不会重复绑定事件
   window.removeEventListener('click', onClick);
   window.addEventListener('click', onClick);
 }
 
+// Function to toggle between meshes
+export function setupMeshToggleInteraction(scene, camera, raycaster, mouse, mesh1, mesh2) {
+  // Ensure initial visibility
+  mesh1.visible = true;
+  mesh2.visible = false;
 
+  const defaultMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+  const hoverMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
+
+  const originalMaterials = new Map();
+  mesh1.traverse((child) => {
+    if (child.isMesh) originalMaterials.set(child, child.material);
+  });
+  mesh2.traverse((child) => {
+    if (child.isMesh) originalMaterials.set(child, child.material);
+  });
+
+  const mesh1Children = [];
+  const mesh2Children = [];
+  mesh1.traverse((child) => mesh1Children.push(child));
+  mesh2.traverse((child) => mesh2Children.push(child));
+
+  let highlightedObject = null;
+
+  window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
+
+    if (intersects.length > 0) {
+      const hoveredMesh = intersects[0].object;
+
+      if (highlightedObject !== hoveredMesh) {
+        if (highlightedObject) {
+          highlightedObject.material = originalMaterials.get(highlightedObject);
+        }
+
+        highlightedObject = hoveredMesh;
+        highlightedObject.material = hoverMaterial;
+      }
+    } else {
+      if (highlightedObject) {
+        highlightedObject.material = originalMaterials.get(highlightedObject);
+        highlightedObject = null;
+      }
+    }
+  });
+
+  window.addEventListener('click', (event) => {
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
+
+    if (intersects.length > 0) {
+      const clickedMesh = intersects[0].object;
+
+      if (mesh1Children.includes(clickedMesh)) {
+        mesh1.visible = false;
+        mesh2.visible = true;
+      } else if (mesh2Children.includes(clickedMesh)) {
+        mesh1.visible = true;
+        mesh2.visible = false;
+      }
+    }
+  });
+}
+
+export function addHoverTooltip(scene, camera, raycaster, mouse, mesh, text) {
+  const tooltip = document.createElement('div');
+  tooltip.style.position = 'absolute';
+  tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+  tooltip.style.color = 'white';
+  tooltip.style.padding = '10px';
+  tooltip.style.borderRadius = '5px';
+  tooltip.style.display = 'none';
+  tooltip.style.fontSize = '16px';
+  tooltip.style.width = '25%';
+  tooltip.style.height = '25%';
+  tooltip.style.zIndex = '1000';
+  tooltip.style.overflowY = 'auto';
+  tooltip.innerHTML = `<div style="position: relative; width: 100%; height: 100%;">
+    <div style="position: absolute; top: 5px; right: 10px; cursor: pointer;">&times;</div>
+    <div>${text.replace(/\n/g, '<br>')}</div>
+  </div>`;
+  document.body.appendChild(tooltip);
+
+  const closeButton = tooltip.querySelector('div div');
+  closeButton.addEventListener('click', () => {
+    tooltip.style.display = 'none';
+  });
+
+  const countdownCanvas = document.createElement('canvas');
+  countdownCanvas.width = 50;
+  countdownCanvas.height = 50;
+  countdownCanvas.style.position = 'absolute';
+  countdownCanvas.style.zIndex = '999';
+  countdownCanvas.style.pointerEvents = 'none';
+  document.body.appendChild(countdownCanvas);
+  const ctx = countdownCanvas.getContext('2d');
+
+  let hoverTimer = null;
+  let hoverStart = null;
+  let isCounting = false;
+
+  window.addEventListener('mousemove', (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(mesh);
+
+    if (intersects.length > 0) {
+      countdownCanvas.style.left = `${event.clientX - 25}px`;
+      countdownCanvas.style.top = `${event.clientY - 25}px`;
+
+      if (!isCounting) {
+        isCounting = true;
+        hoverStart = performance.now();
+
+        hoverTimer = setInterval(() => {
+          const elapsed = performance.now() - hoverStart;
+          const progress = Math.min(elapsed / 3000, 1);
+
+          ctx.clearRect(0, 0, 50, 50);
+          ctx.beginPath();
+          ctx.arc(25, 25, 20, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.stroke();
+
+          if (progress === 1) {
+            clearInterval(hoverTimer);
+            tooltip.style.display = 'block';
+            tooltip.style.left = `${event.clientX + 10}px`;
+            tooltip.style.top = `${event.clientY + 10}px`;
+            ctx.clearRect(0, 0, 50, 50);
+            isCounting = false;
+          }
+        }, 16);
+      }
+    } else {
+      if (hoverTimer) {
+        clearInterval(hoverTimer);
+        ctx.clearRect(0, 0, 50, 50);
+        isCounting = false;
+      }
+      tooltip.style.display = 'none';
+    }
+  });
+}

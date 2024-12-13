@@ -1,3 +1,5 @@
+// Updated main.js
+
 // Import necessary modules
 import * as THREE from 'three';
 import { gsap } from 'gsap';
@@ -8,8 +10,9 @@ import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials
 import {
   setupRotationInteraction,
   setupMovementInteraction,
+  setupMeshToggleInteraction,
+  addHoverTooltip,
 } from './animations.js';
-
 
 // Scene and Camera Setup
 const scene = new THREE.Scene();
@@ -72,102 +75,12 @@ function initializeInteractions() {
     setupRotationInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, upperCaseOpened);
     setupMovementInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, { x: 0, y: 50, z: 0 }, keyboardFaceOpened);
     setupMovementInteraction(scene, camera, raycaster, mouse, LowerCase_buttonMesh, { x: 0, y: -50, z: 0 }, buttonFaceOpened);
-    //LowerCase_behind
     setupMovementInteraction(scene, camera, raycaster, mouse, FrontCoverMesh, { x: 0, y: 0, z: 50 }, FrontCoverOpened);
-    //LowerCase_front
     setupMovementInteraction(scene, camera, raycaster, mouse, BehindCoverMesh, { x: 0, y: 0, z: -50 }, BehindCoverOpened);
-    // //PowerCase_upper
     setupMovementInteraction(scene, camera, raycaster, mouse, PowercaseUpperMesh, { x: 0, y: 50, z: 0 }, PowercaseOpened);
-    // //ATX_Power_Supply_v1
     setupMovementInteraction(scene, camera, raycaster, mouse, PSUMesh, { x: 0, y: 25, z: 0 }, PSUOpened);
+    addHoverTooltip(scene, camera, raycaster, mouse, keyboardFaceMesh, "Hover over this mesh to see the tooltip!\nThis feature supports multi-line text.");
   }
-}
-
-function setupMeshToggleInteraction(mesh1, mesh2) {
-  // 确保初始状态下只有一个 mesh 可见
-  mesh1.visible = true;
-  mesh2.visible = false;
-
-  // 定义默认材质和高亮材质
-  const defaultMaterial = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
-  const hoverMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-
-  // 存储原始材质
-  const originalMaterials = new Map();
-  mesh1.traverse((child) => {
-    if (child.isMesh) originalMaterials.set(child, child.material);
-  });
-  mesh2.traverse((child) => {
-    if (child.isMesh) originalMaterials.set(child, child.material);
-  });
-
-  // 获取所有子节点（包括自身）作为交互对象
-  const mesh1Children = [];
-  const mesh2Children = [];
-  mesh1.traverse((child) => mesh1Children.push(child));
-  mesh2.traverse((child) => mesh2Children.push(child));
-
-  let highlightedObject = null; // 当前高亮的对象
-
-  console.log(`setupMeshToggleInteraction initialized for ${mesh1.name} and ${mesh2.name}`);
-
-  // 鼠标移动时检测高亮
-  window.addEventListener('mousemove', (event) => {
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
-
-    if (intersects.length > 0) {
-      const hoveredMesh = intersects[0].object;
-
-      if (highlightedObject !== hoveredMesh) {
-        // 取消上一个高亮
-        if (highlightedObject) {
-          highlightedObject.material = originalMaterials.get(highlightedObject);
-        }
-
-        // 设置当前高亮
-        highlightedObject = hoveredMesh;
-        highlightedObject.material = hoverMaterial;
-      }
-    } else {
-      // 没有悬停对象时，取消所有高亮
-      if (highlightedObject) {
-        highlightedObject.material = originalMaterials.get(highlightedObject);
-        highlightedObject = null;
-      }
-    }
-  });
-
-  // 鼠标点击时切换模型
-  window.addEventListener('click', (event) => {
-    console.log('Mouse click detected');
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects([...mesh1Children, ...mesh2Children]);
-
-    console.log('Intersected objects:', intersects);
-
-    if (intersects.length > 0) {
-      const clickedMesh = intersects[0].object;
-
-      console.log(`Clicked on: ${clickedMesh.name}`);
-
-      if (mesh1Children.includes(clickedMesh)) {
-        console.log(`Switching from ${mesh1.name} to ${mesh2.name}`);
-        mesh1.visible = false;
-        mesh2.visible = true;
-      } else if (mesh2Children.includes(clickedMesh)) {
-        console.log(`Switching from ${mesh2.name} to ${mesh1.name}`);
-        mesh1.visible = true;
-        mesh2.visible = false;
-      }
-    } else {
-      console.log('No intersected objects detected.');
-    }
-  });
 }
 
 loader.load(
@@ -219,10 +132,10 @@ loader.load(
 
     // Example usage of setupMeshToggleInteraction
     if (ATXMesh && EATXMesh) {
-      setupMeshToggleInteraction(ATXMesh, EATXMesh);
+      setupMeshToggleInteraction(scene, camera, raycaster, mouse, ATXMesh, EATXMesh);
     }
     if (FanMesh && WatterMesh) {
-      setupMeshToggleInteraction(FanMesh, WatterMesh);
+      setupMeshToggleInteraction(scene, camera, raycaster, mouse, FanMesh, WatterMesh);
     }
 
     printObjectTree(scene);
