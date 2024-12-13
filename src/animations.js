@@ -13,33 +13,14 @@ export function unlockAnimation() {
   isAnimating = false;
 }
 
-// Function to open the case
-export function openCase(rotateAxis) {
-  gsap.to(rotateAxis.rotation, {
-    x: -Math.PI / 1.8,
-    duration: 1,
-    ease: 'power2.inOut',
-  });
-}
-
-// Function to close the case
-export function closeCase(rotateAxis) {
-  gsap.to(rotateAxis.rotation, {
-    x: 0,
-    duration: 1,
-    ease: 'power2.inOut',
-  });
-}
-
-// Setup interaction for opening/closing the upper case
-export function setupUpperCaseInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, isCaseOpen) {
+// Function to handle rotation-based animations
+export function setupRotationInteraction(scene, camera, raycaster, mouse, model, rotateAxis, isOpen) {
   if (!rotateAxis) {
     console.error('RotateAxis not found.');
     return;
   }
 
-  const originalMaterial = upperCaseFrontMesh.material;
-  let closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
+  let closedPulsingBalls = addPulsingBalls(scene, model);
   let openPulsingBalls;
 
   window.addEventListener('mousemove', (event) => {
@@ -47,13 +28,11 @@ export function setupUpperCaseInteraction(scene, camera, raycaster, mouse, upper
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
+    const intersects = raycaster.intersectObject(model);
 
     if (intersects.length > 0) {
-      upperCaseFrontMesh.material.color.set(0xffffff);
       document.body.style.cursor = 'pointer';
     } else {
-      upperCaseFrontMesh.material.color.copy(originalMaterial.color);
       document.body.style.cursor = 'default';
     }
   });
@@ -63,64 +42,72 @@ export function setupUpperCaseInteraction(scene, camera, raycaster, mouse, upper
     lockAnimation();
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(upperCaseFrontMesh);
+    const intersects = raycaster.intersectObject(model);
 
     if (intersects.length > 0) {
-      if (isCaseOpen) {
-        closeCase(rotateAxis);
-        openPulsingBalls = removePulsingBalls(openPulsingBalls);
-        gsap.delayedCall(1, () => {
-          closedPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
-          unlockAnimation();
+      if (isOpen) {
+        gsap.to(rotateAxis.rotation, {
+          x: 0,
+          duration: 1,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            openPulsingBalls = removePulsingBalls(openPulsingBalls);
+            closedPulsingBalls = addPulsingBalls(scene, model);
+            unlockAnimation();
+          },
         });
       } else {
-        openCase(rotateAxis);
-        closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
-        gsap.delayedCall(1, () => {
-          openPulsingBalls = addPulsingBalls(scene, upperCaseFrontMesh);
-          unlockAnimation();
+        gsap.to(rotateAxis.rotation, {
+          x: -Math.PI / 1.8,
+          duration: 1,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            closedPulsingBalls = removePulsingBalls(closedPulsingBalls);
+            openPulsingBalls = addPulsingBalls(scene, model);
+            unlockAnimation();
+          },
         });
       }
-
-      isCaseOpen = !isCaseOpen;
+      isOpen = !isOpen;
     } else {
       unlockAnimation();
     }
   });
 }
 
-// Setup interaction for keyboard movement
-export function setupKeyboardInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, isKeyboardUp) {
-  let keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
+// Function to handle linear movement animations
+export function setupMovementInteraction(scene, camera, raycaster, mouse, model, direction, isUp) {
+  let pulsingBall = addPulsingBalls(scene, model);
 
   window.addEventListener('click', (event) => {
     if (isAnimating) return;
     lockAnimation();
 
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(keyboardFaceMesh);
+    const intersects = raycaster.intersectObject(model);
 
     if (intersects.length > 0) {
-      removePulsingBalls(keyboardPulsingBall);
-      const direction = isKeyboardUp ? { x: 0, y: -1, z: 0 } : { x: 0, y: 1, z: 0 };
+      removePulsingBalls(pulsingBall);
 
-      // Move the keyboard with animation
-      gsap.to(keyboardFaceMesh.position, {
-        x: keyboardFaceMesh.position.x + direction.x * 50,
-        y: keyboardFaceMesh.position.y + direction.y * 50,
-        z: keyboardFaceMesh.position.z + direction.z * 50,
+      const moveDirection = isUp
+        ? { x: -direction.x, y: -direction.y, z: -direction.z }
+        : direction;
+
+      gsap.to(model.position, {
+        x: model.position.x + moveDirection.x,
+        y: model.position.y + moveDirection.y,
+        z: model.position.z + moveDirection.z,
         duration: 1,
         ease: 'power2.inOut',
         onComplete: () => {
-          // Add pulsing balls after the animation completes
-          keyboardPulsingBall = addPulsingBalls(scene, keyboardFaceMesh);
-          unlockAnimation(); // Unlock animation state
+          pulsingBall = addPulsingBalls(scene, model);
+          unlockAnimation();
         },
       });
 
-      isKeyboardUp = !isKeyboardUp;
+      isUp = !isUp;
     } else {
-      unlockAnimation(); // Unlock if no intersection
+      unlockAnimation();
     }
   });
 }

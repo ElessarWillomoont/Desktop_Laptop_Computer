@@ -1,13 +1,13 @@
-// Import necessary modules
-import * as THREE from 'three';
+// Import necessary modules]
 import { gsap } from 'gsap';
+import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { findObjectByName, applyMaterialToMeshes, printObjectTree } from './utils.js';
 import { stainlessSteelMaterial, sandblastedAluminumMaterial } from './materials.js';
 import {
-  setupUpperCaseInteraction,
-  setupKeyboardInteraction,
+  setupRotationInteraction,
+  setupMovementInteraction,
 } from './animations.js';
 
 // Scene and Camera Setup
@@ -33,14 +33,6 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(10, 20, 10);
 directionalLight.target.position.set(0, 0, 0);
 directionalLight.castShadow = true;
-directionalLight.shadow.camera.near = 0.1;
-directionalLight.shadow.camera.far = 50;
-directionalLight.shadow.camera.left = -25;
-directionalLight.shadow.camera.right = 25;
-directionalLight.shadow.camera.top = 25;
-directionalLight.shadow.camera.bottom = -25;
-directionalLight.shadow.mapSize.width = 1024;
-directionalLight.shadow.mapSize.height = 1024;
 scene.add(directionalLight);
 scene.add(directionalLight.target);
 
@@ -48,12 +40,11 @@ scene.add(directionalLight.target);
 const loader = new GLTFLoader();
 let upperCaseFrontMesh;
 let keyboardFaceMesh;
-let mainCrackCenter = new THREE.Vector3();
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+let rotateAxis;
 let isCaseOpen = false;
 let isKeyboardUp = false;
-let rotateAxis;
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 // Load the model and set up interactions
 loader.load(
@@ -90,17 +81,9 @@ loader.load(
       console.error('RotateAxis not found in the model.');
     }
 
-    const mainCrack = findObjectByName(model, 'Main_Crack');
-    if (mainCrack) {
-      const box = new THREE.Box3().setFromObject(mainCrack);
-      box.getCenter(mainCrackCenter);
-      mainCrackCenter.z = 0;
-
-      cameraPivot.position.copy(mainCrackCenter);
-      startCameraRotation();
-    } else {
-      console.error('Main_Crack not found in the model.');
-    }
+    // Setup interactions
+    setupRotationInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, isCaseOpen);
+    setupMovementInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, { x: 0, y: 50, z: 0 }, isKeyboardUp);
 
     document.dispatchEvent(new Event('modelLoaded'));
     printObjectTree(scene);
@@ -115,15 +98,21 @@ function startCameraRotation() {
   rotationTween = gsap.to(cameraPivot.rotation, { y: Math.PI * 2, duration: 10, repeat: -1, ease: 'linear' });
 }
 
-// Inactivity Timer
+function stopCameraRotation() {
+  if (rotationTween) rotationTween.pause();
+}
+
+// Reset Camera Rotation Timer
 let timeoutId;
 function resetTimer() {
   clearTimeout(timeoutId);
-  if (rotationTween) rotationTween.pause();
+  stopCameraRotation();
   timeoutId = setTimeout(() => {
     startCameraRotation();
   }, 20000);
 }
+
+// Listen to user activity to reset the rotation timer
 ['mousemove', 'keydown', 'click', 'touchstart'].forEach((eventType) => {
   window.addEventListener(eventType, resetTimer);
 });
@@ -134,11 +123,8 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enableZoom = true;
 
-// Listen for model loaded event and set up interactions
-document.addEventListener('modelLoaded', () => {
-  if (upperCaseFrontMesh) setupUpperCaseInteraction(scene, camera, raycaster, mouse, upperCaseFrontMesh, rotateAxis, isCaseOpen);
-  if (keyboardFaceMesh) setupKeyboardInteraction(scene, camera, raycaster, mouse, keyboardFaceMesh, isKeyboardUp);
-});
+// Start Camera Rotation Initially
+startCameraRotation();
 
 // Animation Loop
 function animate() {
